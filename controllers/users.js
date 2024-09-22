@@ -4,10 +4,8 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const Users = mongoose.model('Users', schema.userSchema);
 const imagekit = require('../utils/imagekit');
-const fs = require('fs')
 const {
-    SIGNATURE_KEY,
-    BASE_URL
+    SIGNATURE_KEY
 } = process.env;
 
 module.exports = {
@@ -87,6 +85,12 @@ module.exports = {
             const {
                 id
             } = req.params;
+            if (req.user.role !== 'ADMIN' && id !== req.user.id) {
+                return res.status(403).json({
+                    message: 'Forbidden access'
+                });
+            }
+            
             let user = await Users.findById(id);
             if (!user) {
                 return res.status(404).json({
@@ -99,17 +103,19 @@ module.exports = {
                 req.body.password = hashedPassword
             }
             if (req.file) {
-                if(user.photo !== null) {
-                    const filePath = user.photo.split("//")[1];
-                    const relativePath = filePath.split('/').slice(1).join('/');
-                    if (fs.existsSync(relativePath)) {
-                        fs.unlinkSync(relativePath);
-                    }
+                if (user.photo !== null) {
+                    await imagekit.deleteFile(user.imageId);
                 }
-                const fileUrl = req.file.path;
-                req.body.photo = `${BASE_URL}/${fileUrl}`
+                let folderPath = '/photo-profile';
+                let uploadedFile = await imagekit.upload({
+                    file: req.file.buffer,
+                    fileName: req.file.originalname,
+                    folder: folderPath
+                })
+                req.body.photo = uploadedFile.url;
+                req.body.imageId = uploadedFile.fileId;
             }
-            
+
             user.set(req.body);
             await user.save();
             return res.status(200).json({
@@ -133,15 +139,11 @@ module.exports = {
                 });
             }
 
-            if(user.photo !== null) {
-                const filePath = user.photo.split("//")[1];
-                const relativePath = filePath.split('/').slice(1).join('/');
-                    if (fs.existsSync(relativePath)) {
-                        fs.unlinkSync(relativePath);
-                    }
+            if (user.photo !== null) {
+                await imagekit.deleteFile(user.imageId);
             }
 
-            await user.remove();
+            await Users.deleteOne({ _id: id });
             return res.status(200).json({
                 message: 'Delete user successfully'
             });
@@ -159,13 +161,27 @@ module.exports = {
                 position
             } = req.body;
             let hashedPassword = await bcrypt.hash(password, 10);
+            let imageUrl = null;
+            let imageId = null;
+            if (req.file) {
+                let folderPath = '/photo-profile';
+                let uploadedFile = await imagekit.upload({
+                    file: req.file.buffer,
+                    fileName: req.file.originalname,
+                    folder: folderPath
+                })
+                imageUrl = uploadedFile.url;
+                imageId = uploadedFile.fileId;
+            }
             const newUser = await Users.create({
                 name,
                 email,
                 password: hashedPassword,
                 role: "USER",
                 mitra_id,
-                position
+                position,
+                photo: imageUrl,
+                imageId: imageId
             });
             let payload = {
                 id: newUser._id,

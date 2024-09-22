@@ -77,14 +77,16 @@ module.exports = {
             }
             if (req.file) {
                 if (mitra.logo !== null) {
-                    const filePath = mitra.logo.split("//")[1];
-                    const relativePath = filePath.split('/').slice(1).join('/');
-                    if (fs.existsSync(relativePath)) {
-                        fs.unlinkSync(relativePath);
-                    }
+                    await imagekit.deleteFile(mitra.imageId);
                 }
-                const fileUrl = req.file.path;
-                req.body.logo = `${BASE_URL}/${fileUrl}`
+                let folderPath = '/logo-mitra';
+                let uploadedFile = await imagekit.upload({
+                    file: req.file.buffer,
+                    fileName: req.file.originalname,
+                    folder: folderPath
+                })
+                req.body.logo = uploadedFile.url;
+                req.body.imageId = uploadedFile.fileId;
             }
             mitra.set(req.body);
             let updatedMitra = await mitra.save();
@@ -108,13 +110,9 @@ module.exports = {
                 });
             }
             if (mitra.logo) {
-                const filePath = mitra.logo.split("//")[1];
-                const relativePath = filePath.split('/').slice(1).join('/');
-                if (fs.existsSync(relativePath)) {
-                    fs.unlinkSync(relativePath);
-                }
+                await imagekit.deleteFile(mitra.imageId);
             }
-            await mitra.remove();
+            await Mitra.deleteOne({ _id: id });
             return res.status(200).json({
                 message: 'Delete mitra successfully'
             });

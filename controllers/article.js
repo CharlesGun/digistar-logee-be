@@ -132,15 +132,18 @@ module.exports = {
             }
             if (req.file) {
                 if (article.image !== null) {
-                    const filePath = article.image.split("//")[1];
-                    const relativePath = filePath.split('/').slice(1).join('/');
-                    if (fs.existsSync(relativePath)) {
-                        fs.unlinkSync(relativePath);
-                    }
+                    await imagekit.deleteFile(article.imageId);
                 }
-                const fileUrl = req.file.path;
-                req.body.photo = `${BASE_URL}/${fileUrl}`
+                let folderPath = '/article';
+                let uploadedFile = await imagekit.upload({
+                    file: req.file.buffer,
+                    fileName: req.file.originalname,
+                    folder: folderPath
+                })
+                req.body.image = uploadedFile.url;
+                req.body.imageId = uploadedFile.fileId;
             }
+
             article.set(req.body);
             await article.save();
             return res.status(200).json({
@@ -163,13 +166,11 @@ module.exports = {
                 });
             }
             if (article.image !== null) {
-                const filePath = article.image.split("//")[1];
-                const relativePath = filePath.split('/').slice(1).join('/');
-                if (fs.existsSync(relativePath)) {
-                    fs.unlinkSync(relativePath);
-                }
+                imagekit.deleteFile(article.imageId);
             }
-            await article.remove();
+            await Article.deleteOne({
+                _id: id
+            });
             return res.status(200).json({
                 message: 'Delete article successfully'
             });
