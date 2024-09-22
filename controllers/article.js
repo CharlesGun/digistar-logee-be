@@ -2,7 +2,6 @@ const mongoose = require('mongoose');
 const schema = require('../database/mongodb/schema/articleSchema');
 const Article = mongoose.model('Articles', schema.articleSchema);
 const imagekit = require('../utils/imagekit');
-const fs = require('fs')
 
 module.exports = {
     getArticles: async (req, res, next) => {

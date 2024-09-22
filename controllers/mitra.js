@@ -3,10 +3,6 @@ const mongoose = require('mongoose');
 const schema = require('../database/mongodb/schema/mitraSchema');
 const Mitra = mongoose.model('Mitras', schema.mitraSchema);
 const imagekit = require('../utils/imagekit');
-const fs = require('fs')
-const {
-    BASE_URL
-} = process.env;
 
 module.exports = {
     getAllMitra: async (req, res, next) => {

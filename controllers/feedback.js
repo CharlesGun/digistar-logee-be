@@ -1,6 +1,5 @@
 const mongoose = require('mongoose');
 const schema = require('../database/mongodb/schema/feedbackSchema');
-const mitra = require('./mitra');
 const Feedback = mongoose.model('Feedbacks', schema.feedbackSchema);
 
 module.exports = {
