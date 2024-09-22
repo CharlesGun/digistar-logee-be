@@ -5,19 +5,46 @@ const Product = mongoose.model('Products', schema.productSchema);
 module.exports = {
     getAllProducts: async (req, res, next) => {
         try {
-            const product = await Product.aggregate([
-                {
-                    $lookup:{
-                        from: ProductDetails,
+            const products = await Product.aggregate([{
+                    $lookup: {
+                        from: "productdetails",
                         localField: '_id',
                         foreignField: 'product_id',
-                        as: 'subsctiption'
+                        as: 'subscription'
+                    }
+                },
+                {
+                    $unwind: {
+                        path: "$subscription",
+                        preserveNullAndEmptyArrays: true // Keep products without subscriptions
+                    }
+                },
+                {
+                    $sort: {
+                        "subscription.price": 1 // Sort by subscription price
+                    }
+                },
+                {
+                    $group: {
+                        _id: "$_id",
+                        name: {
+                            $first: "$name"
+                        },
+                        subscription: {
+                            $push: "$subscription"
+                        } // Re-group the subscription array
+                    }
+                },
+                {
+                    $project: {
+                        name: 1,
+                        subscription: 1
                     }
                 }
             ]);
             return res.status(200).json({
-                message: 'Get all product successfully',
-                data: product
+                message: 'Get all products successfully',
+                data: products
             });
         } catch (error) {
             next(error);
@@ -28,17 +55,23 @@ module.exports = {
             const {
                 id
             } = req.params;
-            const product = await Product.aggregate([
-                {
+            const product = await Product.aggregate([{
                     $match: {
-                        _id: mongoose.Types.ObjectId(id)
+                        _id: new mongoose.Types.ObjectId(id)
                     }
                 },
                 {
-                    $lookup:{
+                    $addFields: {
+                        product_id: {
+                            $toObjectId: "$product_id"
+                        }
+                    }
+                },
+                {
+                    $lookup: {
                         from: "ProductDetails",
-                        localField: '_id',
-                        foreignField: 'product_id',
+                        localField: 'product_id',
+                        foreignField: '_id',
                         as: 'subsctiption'
                     }
                 }

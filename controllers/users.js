@@ -3,7 +3,8 @@ const schema = require('../database/mongodb/schema/userSchema');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const Users = mongoose.model('Users', schema.userSchema);
-
+const imagekit = require('../utils/imagekit');
+const fs = require('fs')
 const {
     SIGNATURE_KEY,
     BASE_URL
@@ -51,10 +52,17 @@ module.exports = {
                 position
             } = req.body;
             let hashedPassword = await bcrypt.hash(password, 10);
-            let photoUrl = null;
+            let imageUrl = null;
+            let imageId = null;
             if (req.file) {
-                const fileUrl = req.file.path;
-                photoUrl = `${BASE_URL}/${fileUrl}`
+                let folderPath = '/photo-profile';
+                let uploadedFile = await imagekit.upload({
+                    file: req.file.buffer,
+                    fileName: req.file.originalname,
+                    folder: folderPath
+                })
+                imageUrl = uploadedFile.url;
+                imageId = uploadedFile.fileId;
             }
             const newUser = await Users.create({
                 name,
@@ -63,7 +71,8 @@ module.exports = {
                 role,
                 mitra_id,
                 position,
-                photo: photoUrl
+                photo: imageUrl,
+                imageId: imageId
             });
             return res.status(201).json({
                 message: 'Create user successfully',

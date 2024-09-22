@@ -1,6 +1,8 @@
 const mongoose = require('mongoose');
 const schema = require('../database/mongodb/schema/articleSchema');
 const Article = mongoose.model('Articles', schema.articleSchema);
+const imagekit = require('../utils/imagekit');
+const fs = require('fs')
 
 module.exports = {
     getArticles: async (req, res, next) => {
@@ -34,7 +36,41 @@ module.exports = {
             const {
                 id
             } = req.params;
-            const article = await Article.findById(id);
+            const article = await Article.aggregate([{
+                    $match: {
+                        _id: new mongoose.Types.ObjectId(id)
+                    }
+                },
+                {
+                    $addFields: {
+                        user_id: {
+                            $toObjectId: "$user_id"
+                        }
+                    }
+                },
+                {
+                    $lookup: {
+                        from: 'users',
+                        localField: 'user_id',
+                        foreignField: '_id',
+                        as: 'user'
+                    }
+                },
+                {
+                    $unwind: "$user"
+                },
+                {
+                    $project: {
+                        title: 1,
+                        content: 1,
+                        tags: 1,
+                        category: 1,
+                        image: 1,
+                        createdAt: 1,
+                        "user.name": 1
+                    }
+                }
+            ]);
             return res.status(200).json({
                 message: 'Get article successfully',
                 data: article
@@ -49,21 +85,31 @@ module.exports = {
                 title,
                 content,
                 tags,
-                category,
-                user_id
+                category
             } = req.body;
+            const {
+                id
+            } = req.user;
             let imageUrl = null;
+            let imageId = null;
             if (req.file) {
-                const fileUrl = req.file.path;
-                imageUrl = `${BASE_URL}/${fileUrl}`
+                let folderPath = '/article';
+                let uploadedFile = await imagekit.upload({
+                    file: req.file.buffer,
+                    fileName: req.file.originalname,
+                    folder: folderPath
+                })
+                imageUrl = uploadedFile.url;
+                imageId = uploadedFile.fileId;
             }
             const newArticle = await Article.create({
                 title,
                 content,
                 tags,
                 category,
-                user_id,
-                image: imageUrl
+                user_id: id,
+                image: imageUrl,
+                imageId: imageId
             });
             return res.status(201).json({
                 message: 'Create article successfully',

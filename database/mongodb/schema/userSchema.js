@@ -11,7 +11,8 @@ const userSchema = new mongoose.Schema({
     },
     mitra_id: String,
     position: String,
-    photo: String
+    photo: String,
+    imageId: String
 });
 
 module.exports = {

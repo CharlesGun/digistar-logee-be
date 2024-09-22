@@ -2,7 +2,8 @@ require('dotenv').config();
 const mongoose = require('mongoose');
 const schema = require('../database/mongodb/schema/mitraSchema');
 const Mitra = mongoose.model('Mitras', schema.mitraSchema);
-
+const imagekit = require('../utils/imagekit');
+const fs = require('fs')
 const {
     BASE_URL
 } = process.env;
@@ -38,14 +39,22 @@ module.exports = {
             const {
                 name
             } = req.body;
-            let logoUrl = null;
+            let imageUrl = null;
+            let imageId = null;
             if (req.file) {
-                const fileUrl = req.file.path;
-                logoUrl = `${BASE_URL}/${fileUrl}`
+                let folderPath = '/logo-mitra';
+                let uploadedFile = await imagekit.upload({
+                    file: req.file.buffer,
+                    fileName: req.file.originalname,
+                    folder: folderPath
+                })
+                imageUrl = uploadedFile.url;
+                imageId = uploadedFile.fileId;
             }
             const newMitra = await Mitra.create({
                 name,
-                logo: logoUrl
+                logo: imageUrl,
+                imageId: imageId
             });
             return res.status(201).json({
                 message: 'Create mitra successfully',
@@ -78,7 +87,7 @@ module.exports = {
                 req.body.logo = `${BASE_URL}/${fileUrl}`
             }
             mitra.set(req.body);
-            await mitra.save();
+            let updatedMitra = await mitra.save();
             return res.status(200).json({
                 message: 'Update mitra successfully',
                 data: updatedMitra

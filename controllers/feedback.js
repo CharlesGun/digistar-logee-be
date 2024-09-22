@@ -61,7 +61,7 @@ module.exports = {
                 },
                 {
                     $addFields: {
-                        "user.mitra": "$user.mitra.name"  // Replace the mitra object with the name string
+                        "user.mitra": "$user.mitra.name"
                     }
                 },
                 {
@@ -71,7 +71,7 @@ module.exports = {
                         user: {
                             name: 1,
                             position: 1,
-                            mitra: 1  // Keep mitra as a string now
+                            mitra: 1
                         }
                     }
                 }
