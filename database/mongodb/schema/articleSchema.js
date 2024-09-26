@@ -8,7 +8,8 @@ const articleSchema = new mongoose.Schema({
     user_id: String,
     tags: [String],
     category: String,
-    createdAt: { type: Date, default: Date.now }
+    createdAt: { type: Date, default: Date.now },
+    read_duration: Number
 });
 
 module.exports = {

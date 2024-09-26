@@ -7,13 +7,32 @@ module.exports = {
     getArticles: async (req, res, next) => {
         try {
             const articles = await Article.aggregate([{
+                    $addFields: {
+                        user_id: {
+                            $toObjectId: "$user_id"
+                        }
+                    }
+                }, {
+                    $lookup: {
+                        from: 'users',
+                        localField: 'user_id',
+                        foreignField: '_id',
+                        as: 'user'
+                    }
+                },
+                {
+                    $unwind: "$user"
+                }, {
                     $project: {
                         title: 1,
                         tags: 1,
+                        content: 1,
                         category: 1,
                         user_id: 1,
                         image: 1,
-                        createdAt: 1
+                        createdAt: 1,
+                        "user.name": 1,
+                        read_duration: 1
                     }
                 },
                 {
@@ -66,7 +85,8 @@ module.exports = {
                         category: 1,
                         image: 1,
                         createdAt: 1,
-                        "user.name": 1
+                        "user.name": 1,
+                        read_duration: 1
                     }
                 }
             ]);
@@ -84,7 +104,8 @@ module.exports = {
                 title,
                 content,
                 tags,
-                category
+                category,
+                read_duration
             } = req.body;
             const {
                 id
@@ -107,6 +128,7 @@ module.exports = {
                 tags,
                 category,
                 user_id: id,
+                read_duration,
                 image: imageUrl,
                 imageId: imageId
             });
